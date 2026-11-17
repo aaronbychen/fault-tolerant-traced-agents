@@ -1,1 +1,27 @@
 # Fault Tolerant Traced Agents
+
+## Local cluster quickstart
+
+Requires Docker, minikube, and a bash shell (Git Bash on Windows).
+
+```bash
+scripts/cluster-up.sh                                  # minikube: 4 CPUs, 6 GB (override MINIKUBE_CPUS / MINIKUBE_MEMORY)
+minikube kubectl -- apply -f deploy/observability/     # OTel Collector, Tempo, Grafana
+scripts/smoke-trace.sh                                 # send test traces and confirm they land in Tempo
+```
+
+Open Grafana and go to Explore → Tempo:
+
+```bash
+minikube kubectl -- -n observability port-forward svc/grafana 3000:3000   # http://localhost:3000
+```
+
+Deploy the agent once `agent/` contains a Dockerfile (see the contract at the top of `deploy/agent/agent.yaml`):
+
+```bash
+scripts/build-agent.sh
+```
+
+Apps inside the cluster send OTLP to `otel-collector.observability:4317` (gRPC) or `:4318` (HTTP).
+
+`scripts/measure-memory.sh` reports node and per-pod memory usage.

@@ -1,0 +1,76 @@
+# Support agent. Contract with the agent code:
+#   - image ft2-agent:dev, built into minikube by scripts/build-agent.sh (Dockerfile in agent/)
+#   - HTTP server on port 8000, GET /healthz for readiness
+#   - reads OTEL_* env vars (standard OTel SDK config) and STUB_MODEL=1 for the fake LLM
+# Will move into our Helm chart at checkpoint 2.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ft2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent
+  namespace: ft2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent
+  template:
+    metadata:
+      labels:
+        app: agent
+    spec:
+      containers:
+        - name: agent
+          image: ft2-agent:dev
+          imagePullPolicy: Never
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: STUB_MODEL
+              value: "1"
+            - name: OTEL_SERVICE_NAME
+              value: ft2-agent
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://otel-collector.observability:4317
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: grpc
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: deployment.environment=minikube
+            # Record prompts/completions on spans (GenAI conventions keep them opt-in).
+            - name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
+              value: "true"
+            # Only used when STUB_MODEL=0. Create with:
+            #   kubectl -n ft2 create secret generic llm-api --from-literal=api-key=...
+            - name: LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: llm-api
+                  key: api-key
+                  optional: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+          resources:
+            requests:
+              memory: 128Mi
+              cpu: 100m
+            limits:
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent
+  namespace: ft2
+spec:
+  selector:
+    app: agent
+  ports:
+    - name: http
+      port: 8000
