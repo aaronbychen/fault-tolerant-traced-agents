@@ -1,0 +1,11 @@
+# Keep local environments, tests and anything key-shaped out of the image.
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+.pytest_cache/
+tests/
+.env
+.env.*
+*secret*

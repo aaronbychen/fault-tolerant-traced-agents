@@ -1,0 +1,21 @@
+# Secrets: never commit real keys. Commit *.example.* files with placeholders instead.
+.env
+.env.*
+!.env.example
+secret.yaml
+*.secret.yaml
+**/secret.yaml
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

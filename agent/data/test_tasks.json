@@ -1,0 +1,17 @@
+[
+  {
+    "task_id": "refund-1042",
+    "question": "Can I return order 1042 after 20 days?",
+    "expected": {"tools": ["search_policies", "lookup_order"], "answer_contains": ["14 days", "not eligible"]}
+  },
+  {
+    "task_id": "refund-1043",
+    "question": "Can I return order 1043 after 10 days?",
+    "expected": {"tools": ["search_policies", "lookup_order"], "answer_contains": ["14 days", "is eligible"]}
+  },
+  {
+    "task_id": "shipping-1044",
+    "question": "How long does express shipping take for order 1044?",
+    "expected": {"tools": ["search_policies", "lookup_order"], "answer_contains": ["1 to 2 business days"]}
+  }
+]
