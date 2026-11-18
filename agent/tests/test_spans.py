@@ -1,9 +1,10 @@
 # Regression guard for the trace shape in design doc §3.5.
+import pytest
 from opentelemetry import propagate, trace
 from opentelemetry.trace import StatusCode
 
-from ft2_agent.agent import run_task
-from ft2_agent.llm import StubModel
+from ft2_agent.agent import AGENT_DESCRIPTION, run_task
+from ft2_agent.llm import ModelError, StubModel
 
 
 def _run(spans, question="Can I return order 1042 after 20 days?", carrier=None):
@@ -32,6 +33,7 @@ def test_genai_attributes(spans):
     _, finished, by_name = _run(spans)
     root = by_name["invoke_agent support-agent"]
     assert root.attributes["gen_ai.operation.name"] == "invoke_agent"
+    assert root.attributes["gen_ai.agent.description"] == AGENT_DESCRIPTION
     assert root.attributes["ft2.task.id"] == "t-span"
 
     chats = [span for span in finished if span.name.startswith("chat ")]
@@ -58,8 +60,33 @@ def test_message_content_is_opt_in(spans, monkeypatch):
     spans.clear()
     monkeypatch.setenv("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", "true")
     _, _, by_name = _run(spans)
-    assert "1042" in by_name["chat stub-model"].attributes["gen_ai.input.messages"]
+    assert "gen_ai.input.messages" in by_name["chat stub-model"].attributes
     assert "gen_ai.tool.call.result" in by_name["execute_tool lookup_order"].attributes
+
+
+def test_content_uses_genai_message_schema(spans, monkeypatch):
+    monkeypatch.setenv("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", "true")
+    _, finished, by_name = _run(spans)
+    first, second = [span for span in sorted(finished, key=lambda s: s.start_time) if span.name.startswith("chat ")]
+
+    calls = first.attributes["gen_ai.output.messages"][0]
+    assert calls["finish_reason"] == "tool_call"
+    assert [part["name"] for part in calls["parts"]] == ["search_policies", "lookup_order"]
+
+    inputs = second.attributes["gen_ai.input.messages"]
+    assert [message["role"] for message in inputs] == ["system", "user", "assistant", "tool", "tool"]
+    assert inputs[1]["parts"][0] == {"type": "text", "content": "Can I return order 1042 after 20 days?"}
+    order = inputs[4]["parts"][0]
+    assert order["type"] == "tool_call_response"
+    assert order["response"]["delivered_date"] == "2026-10-24"
+
+    answer = second.attributes["gen_ai.output.messages"][0]
+    assert answer["finish_reason"] == "stop"
+    assert "14 days" in answer["parts"][0]["content"]
+
+    lookup = by_name["execute_tool lookup_order"]
+    assert lookup.attributes["gen_ai.tool.call.arguments"] == {"order_id": "1042"}
+    assert lookup.attributes["gen_ai.tool.call.result"]["order_id"] == "1042"
 
 
 def test_failed_tool_span_is_red(spans):
@@ -67,6 +94,19 @@ def test_failed_tool_span_is_red(spans):
     lookup = by_name["execute_tool lookup_order"]
     assert lookup.status.status_code == StatusCode.ERROR
     assert lookup.attributes["error.type"] == "ToolError"
+
+
+def test_model_failure_sets_error_type(spans):
+    class FailingModel(StubModel):
+        def step(self, messages, tools):
+            raise ModelError("rate limited")
+
+    with pytest.raises(ModelError):
+        run_task("t-fail", "Can I return order 1042?", model=FailingModel(0, 0))
+    by_name = {span.name: span for span in spans.get_finished_spans()}
+    for name in ("chat stub-model", "invoke_agent support-agent"):
+        assert by_name[name].status.status_code == StatusCode.ERROR
+        assert by_name[name].attributes["error.type"] == "ModelError"
 
 
 def test_carrier_continues_an_upstream_trace(spans):
