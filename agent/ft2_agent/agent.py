@@ -7,6 +7,7 @@ from .llm import Model, get_model
 from .tools import ToolError, run_tool, tool_schemas
 
 AGENT_NAME = "support-agent"
+AGENT_DESCRIPTION = "Customer support agent for an online store: answers policy and order questions."
 MAX_STEPS = 6
 
 SYSTEM_PROMPT = (
@@ -38,7 +39,7 @@ def run_task(task_id: str, question: str, carrier: dict | None = None, model: Mo
     messages = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": question}]
     steps = []
 
-    with telemetry.agent_span(AGENT_NAME, task_id, carrier) as root:
+    with telemetry.agent_span(AGENT_NAME, AGENT_DESCRIPTION, task_id, carrier) as root:
         for step in range(1, MAX_STEPS + 1):
             with telemetry.chat_span(model.provider, model.name, step, messages) as span:
                 turn = model.step(messages, tools)
