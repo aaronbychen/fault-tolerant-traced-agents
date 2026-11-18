@@ -6,6 +6,7 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+COPY data ./data
 COPY ft2_agent ./ft2_agent
 
 # Run as a non-root user

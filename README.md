@@ -22,6 +22,21 @@ Deploy the agent once `agent/` contains a Dockerfile (see the contract at the to
 scripts/build-agent.sh
 ```
 
+Send one task to the agent and print its trace from Tempo (checkpoint 1 end-to-end check):
+
+```bash
+scripts/smoke-agent.sh                                    # default: "Can I return order 1042 after 20 days?"
+scripts/smoke-agent.sh "How long does express shipping take for order 1044?"
+```
+
+The agent runs a stub model by default (`STUB_MODEL=1`), so no API key is needed. Run its tests locally with Python 3.12:
+
+```bash
+cd agent && python3.12 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt && .venv/bin/pytest
+```
+
+Using a non-default minikube profile? Prefix the scripts with `MINIKUBE_PROFILE=<name>`.
+
 Apps inside the cluster send OTLP to `otel-collector.observability:4317` (gRPC) or `:4318` (HTTP).
 
 `scripts/measure-memory.sh` reports node and per-pod memory usage.
