@@ -1,5 +1,7 @@
 # Fault Tolerant Traced Agents
 
+Contributors: Aaron Chen, Tim Yang, Richard Li, Josh Li
+
 ## Local cluster quickstart
 
 Requires Docker, minikube, and a bash shell (Git Bash on Windows).
