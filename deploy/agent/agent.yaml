@@ -33,14 +33,24 @@ spec:
           env:
             - name: STUB_MODEL
               value: "1"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
             - name: OTEL_SERVICE_NAME
               value: ft2-agent
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://otel-collector.observability:4317
             - name: OTEL_EXPORTER_OTLP_PROTOCOL
               value: grpc
+            # Pod name on every span, so a trace shows which pod ran (or retried) a task.
+            # $(VAR) only expands variables defined above this one.
             - name: OTEL_RESOURCE_ATTRIBUTES
-              value: deployment.environment=minikube
+              value: deployment.environment.name=minikube,k8s.pod.name=$(POD_NAME),k8s.namespace.name=$(POD_NAMESPACE)
             # Record prompts/completions on spans (GenAI conventions keep them opt-in).
             - name: OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT
               value: "true"
