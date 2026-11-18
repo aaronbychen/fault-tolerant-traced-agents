@@ -1,0 +1,23 @@
+{
+  "1042": {
+    "order_id": "1042",
+    "status": "delivered",
+    "order_date": "2026-10-20",
+    "delivered_date": "2026-10-24",
+    "items": [{"sku": "HP-200", "name": "Wireless headphones", "quantity": 1, "price": 89.99}]
+  },
+  "1043": {
+    "order_id": "1043",
+    "status": "delivered",
+    "order_date": "2026-11-05",
+    "delivered_date": "2026-11-09",
+    "items": [{"sku": "KB-110", "name": "Mechanical keyboard", "quantity": 1, "price": 129.00}]
+  },
+  "1044": {
+    "order_id": "1044",
+    "status": "shipped",
+    "order_date": "2026-11-15",
+    "delivered_date": null,
+    "items": [{"sku": "CB-USB-C", "name": "USB-C cable", "quantity": 2, "price": 12.50}]
+  }
+}
