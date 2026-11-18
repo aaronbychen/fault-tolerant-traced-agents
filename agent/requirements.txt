@@ -1,0 +1,4 @@
+# Runtime packages for the agent image. OpenTelemetry and the LLM SDK come next.
+fastapi==0.163.2
+pydantic==2.14.3
+uvicorn==0.54.0
