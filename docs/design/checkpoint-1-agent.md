@@ -133,25 +133,6 @@ POST /tasks                                   (FastAPI instrumentation, SERVER)
 - Expected dependencies: `fastapi`, `uvicorn`, `opentelemetry-sdk`, `opentelemetry-exporter-otlp-proto-grpc`, `opentelemetry-instrumentation-fastapi`, plus one LLM SDK. All have arm64 and amd64 wheels.
 - Memory: stays well under the 512 Mi limit already in `agent.yaml`.
 
-### 3.7 Patterns carried over from the course labs
-
-The agent service follows the shape of the Lab 5 job-submitter app, so the code will look familiar to anyone grading or reviewing it:
-
-| Lab 5 job submitter | FT² agent |
-|---|---|
-| FastAPI app, `POST /tasks`, `GET /healthz` | Same endpoints |
-| Pydantic request model with `extra = "forbid"` | `TaskRequest(task_id, question)`, also `forbid` |
-| `_parse_command` allowlist: the request may never pick an arbitrary script | Tool allowlist: the model may only call registered tools, and arguments are validated against each tool's schema before running |
-| Errors mapped to HTTP codes (400 bad input, 503/504 upstream) | Same: 400 bad task, 502 LLM API error, 504 step limit or timeout |
-| Config from env vars, secrets from a K8s Secret, `secret.example.yaml` committed | Same (`llm-api` secret, optional) |
-| `python:3.12-slim`, requirements layer before code | Same |
-
-What we deliberately do **not** carry over:
-
-- **No local model (distilgpt2 / PyTorch).** That image was over 1 GB and needed 1–3 GiB per pod. That would make scale-from-zero slow and fill the 6 GB cluster after a few workers, and distilgpt2 cannot do tool calling. The stub model replaces it for every load test.
-- **No Jobs or RBAC in the agent.** The agent never calls the Kubernetes API. Workers are a Deployment that KEDA scales, which is the "stays up and serves" case from Lab 5, not the "runs once" case.
-- **No Docker Hub push.** Images build straight into minikube.
-
 ## 4. Tests
 
 - `test_tools.py`: search returns the 2026 refund policy for a refund question, and `lookup_order("1042")` returns the fixture while an unknown id returns an error.
